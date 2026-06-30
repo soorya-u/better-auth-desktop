@@ -40,7 +40,7 @@ export function forwardToDesktop(
 		};
 	}
 
-	const target = parseLoopbackUrl(decodeURIComponent(loopback));
+	const target = parseLoopbackUrl(loopback);
 	if (!target) {
 		return { success: false, error: new Error("Invalid loopback URL") };
 	}

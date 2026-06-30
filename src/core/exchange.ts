@@ -168,38 +168,43 @@ async function prepareAuthFlow({
 		verifierStore.delete(state);
 	};
 
-	server = await adapter.serveLoopback(
-		async (req) => {
-			if (req.path !== loopbackPath) {
-				return { status: 404, body: "Not found" };
-			}
-			if (req.query.nonce !== nonce) {
-				return { status: 403, body: "Forbidden" };
-			}
-			const token = req.query.token;
-			if (!token) return { status: 400, body: "Missing token" };
-			try {
-				await exchangeToken({
-					$fetch,
-					options,
-					token,
-					onAuthenticated,
-					fetchOptions: { throw: true },
-				});
-			} catch (error) {
+	try {
+		server = await adapter.serveLoopback(
+			async (req) => {
+				if (req.path !== loopbackPath) {
+					return { status: 404, body: "Not found" };
+				}
+				if (req.query.nonce !== nonce) {
+					return { status: 403, body: "Forbidden" };
+				}
+				const token = req.query.token;
+				if (!token) return { status: 400, body: "Missing token" };
+				try {
+					await exchangeToken({
+						$fetch,
+						options,
+						token,
+						onAuthenticated,
+						fetchOptions: { throw: true },
+					});
+				} catch (error) {
+					cleanup();
+					onError?.(error);
+					return {
+						status: 500,
+						headers: { "content-type": "text/plain; charset=utf-8" },
+						body: "Sign-in failed. You can close this tab.",
+					};
+				}
 				cleanup();
-				onError?.(error);
-				return {
-					status: 500,
-					headers: { "content-type": "text/plain; charset=utf-8" },
-					body: "Sign-in failed. You can close this tab.",
-				};
-			}
-			cleanup();
-			return loopbackSuccessResponse(options.loopbackSuccess);
-		},
-		{ port: options.loopbackPort },
-	);
+				return loopbackSuccessResponse(options.loopbackSuccess);
+			},
+			{ port: options.loopbackPort },
+		);
+	} catch (error) {
+		verifierStore.delete(state);
+		throw error;
+	}
 
 	const loopbackUrl = buildLoopbackUrl(server.port, loopbackPath, nonce);
 

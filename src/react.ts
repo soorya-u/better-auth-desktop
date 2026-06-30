@@ -10,6 +10,10 @@ export function useSession<TUser extends AuthUser = AuthUser>(
 	const [isPending, setIsPending] = useState(true);
 
 	useEffect(() => {
+		// Reset on every bridge change so stale data from a prior bridge is cleared.
+		setData(null);
+		setIsPending(true);
+
 		if (!bridge) {
 			setIsPending(false);
 			return;

@@ -55,17 +55,16 @@ export function wrapForDesktop<
 						disableRedirect?: boolean;
 						[key: string]: unknown;
 					}) => {
-						if (params.disableRedirect) {
+						const { disableRedirect, ...rest } = params;
+						if (disableRedirect) {
 							// Return the desktop init-oauth-proxy URL without opening a browser,
 							// shaped like the better-auth client envelope so callers can read .data.url.
-							return bridge
-								.getAuthUrl({ provider: params.provider })
-								.then((url) => ({
-									data: { url, redirect: false },
-									error: null,
-								}));
+							return bridge.getAuthUrl(rest).then((url) => ({
+								data: { url, redirect: false },
+								error: null,
+							}));
 						}
-						return bridge.requestAuth({ provider: params.provider });
+						return bridge.requestAuth(rest);
 					};
 				},
 			});
