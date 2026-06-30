@@ -1,6 +1,6 @@
 {
 	"name": "@soorya-u/better-auth-desktop",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Loopback-based desktop auth for Better Auth. Framework-agnostic server + core with thin Electrobun and Electron adapters; OAuth hand-off via a 127.0.0.1 loopback navigation (no custom URL scheme).",
 	"type": "module",
 	"license": "MIT",
