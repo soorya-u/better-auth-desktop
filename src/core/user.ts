@@ -37,32 +37,41 @@ export async function fetchUserImage(
 		return null;
 	}
 
-	const response = await fetch(resolvedUrl, {
-		method: "GET",
-		headers: { accept: "image/*" },
-	});
+	const controller = new AbortController();
+	const fetchTimer = setTimeout(() => controller.abort(), 10_000);
+	try {
+		const response = await fetch(resolvedUrl, {
+			method: "GET",
+			headers: { accept: "image/*" },
+			signal: controller.signal,
+		});
 
-	if (!response.ok) return null;
+		if (!response.ok) return null;
 
-	const contentType = response.headers.get("content-type");
-	if (
-		!contentType?.startsWith("image/") ||
-		contentType.startsWith("image/svg")
-	) {
+		const contentType = response.headers.get("content-type");
+		if (
+			!contentType?.startsWith("image/") ||
+			contentType.startsWith("image/svg")
+		) {
+			return null;
+		}
+
+		const contentLength = response.headers.get("content-length");
+		if (contentLength && Number(contentLength) > DEFAULT_MAX_BYTES) {
+			return null;
+		}
+
+		const buf = await response.arrayBuffer();
+		const bytes = new Uint8Array(buf);
+		if (bytes.byteLength > DEFAULT_MAX_BYTES) return null;
+
+		const mimeType = contentType.split(";")[0]?.trim() || "image/png";
+		return { bytes, mimeType };
+	} catch {
 		return null;
+	} finally {
+		clearTimeout(fetchTimer);
 	}
-
-	const contentLength = response.headers.get("content-length");
-	if (contentLength && Number(contentLength) > DEFAULT_MAX_BYTES) {
-		return null;
-	}
-
-	const buf = await response.arrayBuffer();
-	const bytes = new Uint8Array(buf);
-	if (bytes.byteLength > DEFAULT_MAX_BYTES) return null;
-
-	const mimeType = contentType.split(";")[0]?.trim() || "image/png";
-	return { bytes, mimeType };
 }
 
 // Leaves `user.image` as-is; no custom-scheme image rewriting in the loopback

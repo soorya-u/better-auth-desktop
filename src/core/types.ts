@@ -66,10 +66,10 @@ export type DesktopClientOptions = {
 	cookiePrefix?: string | string[];
 	disableCache?: boolean;
 	sanitizeUser?: (user: AuthUser) => Awaitable<AuthUser>;
-	/**
-	 * What the loopback shows after a successful exchange. A string is used as the
-	 * HTML body; an object can redirect the browser to your own page instead.
-	 * Defaults to a built-in "you can close this tab" page.
-	 */
+	// What to show after a successful exchange. Omit for a plain-text fallback.
+	// Pass a full HTML string to render a custom page, or { redirectTo } to
+	// send the browser to a branded callback URL instead.
 	loopbackSuccess?: string | { redirectTo: string };
+	/** Called when a keychain/storage write fails. Use this to surface the error to the user or log it. */
+	onStorageError?: (error: unknown) => void;
 };

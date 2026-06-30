@@ -113,6 +113,7 @@ export const authClient = createAuthClient({
       clientID: "my-desktop-app",
       storage: await keychainStorage(),
       // loopbackPort: 51789,  // optional; omit to bind 127.0.0.1:0 (OS-assigned)
+      // onStorageError: (err) => console.error("Keychain write failed", err),
     }),
   ],
 });
@@ -142,8 +143,12 @@ auth.onAuthenticated((user) => navigate("/app"));
 await auth.requestAuth({ provider: "github" });
 ```
 
-The bridge exposes `requestAuth`, `getUser`, `signOut`, `getUserImage`, and the
-`onAuthenticated` / `onUserUpdated` / `onAuthError` subscriptions.
+The bridge exposes: `requestAuth` (open browser flow), `getAuthUrl` (return the
+URL without opening a browser — useful for copy-link flows), `getUser`,
+`getSession`, `signOut`, `getUserImage`, `watchUser` (reactive subscription to
+the current user, race-safe), `destroy` (remove all listeners on unmount /
+hot-reload), and the `onAuthenticated` / `onUserUpdated` / `onAuthError` event
+subscriptions.
 
 No `urlSchemes` / `protocol` registration is needed in `electrobun.config.ts`.
 
@@ -199,6 +204,32 @@ const authClient = createAuthClient({ plugins: [webDesktop()] });
 authClient.forwardToDesktop();
 ```
 
+### Wrapping an auth client (renderer / web)
+
+`wrapForDesktop` proxy-wraps a `better-auth` client so that `getSession`,
+`signOut`, and `signIn.social` delegate to the desktop bridge instead of hitting
+the network directly. Pass `null` as the bridge to get the original client
+back unchanged (useful during SSR / before the bridge is initialized).
+
+```ts
+import { wrapForDesktop } from "@soorya-u/better-auth-desktop/web";
+
+// wrap once, use everywhere like a normal better-auth client
+const authClient = wrapForDesktop(baseClient, bridge);
+await authClient.signIn.social({ provider: "github" }); // → opens loopback flow
+await authClient.signOut();                               // → bridge.signOut()
+```
+
+To also intercept `useSession`, pass a framework hook as the third argument:
+
+```ts
+import { useSession } from "@soorya-u/better-auth-desktop/react"; // React
+const authClient = wrapForDesktop(baseClient, bridge, useSession);
+```
+
+Or supply your own hook for Vue / Svelte — type it with `UseSessionFn` from
+`@soorya-u/better-auth-desktop/web`.
+
 ### Customizing the loopback success page
 
 By default the loopback serves a minimal "you can close this tab" page. Override
@@ -240,7 +271,8 @@ type DesktopAdapter = {
 | `@soorya-u/better-auth-desktop/electrobun` | `electrobunDesktop()` plugin + `keychainStorage()` (Bun main process) |
 | `@soorya-u/better-auth-desktop/rpc/webview` | `defineAuthWebviewRPC()` (Electrobun renderer) |
 | `@soorya-u/better-auth-desktop/electron` | `electronDesktop()` plugin + `electronStorage()` (Electron main process) |
-| `@soorya-u/better-auth-desktop/web` | `forwardToDesktop()` + `webDesktop()` plugin (optional branded page) |
+| `@soorya-u/better-auth-desktop/web` | `wrapForDesktop()`, `forwardToDesktop()`, `webDesktop()` plugin |
+| `@soorya-u/better-auth-desktop/react` | `useSession()` React hook for the desktop bridge |
 | `@soorya-u/better-auth-desktop/client` | `desktopClient()` Better Auth client plugin |
 | `@soorya-u/better-auth-desktop/core` | shared types & utilities for custom adapters |
 

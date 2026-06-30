@@ -18,7 +18,6 @@ export {
 	isAllowedLoopbackPort,
 	LOOPBACK_HOST,
 	parseLoopbackUrl,
-	successPage,
 } from "./loopback";
 export { type KeychainStorageOptions, keychainStorage } from "./storage";
 export type {

@@ -9,7 +9,7 @@ import {
 	createDesktopCookieLayer,
 	type DesktopClientPluginOptions,
 } from "../core/client";
-import { startAuthFlow } from "../core/exchange";
+import { buildAuthUrl, startAuthFlow } from "../core/exchange";
 import type {
 	AuthEvent,
 	AuthUser,
@@ -170,6 +170,28 @@ export const electrobunDesktop = (options: ElectrobunDesktopOptions) => {
 							}),
 					});
 					return undefined;
+				},
+				getAuthUrl: async ({
+					options: cfg,
+				}: {
+					options: RequestAuthOptions;
+				}) => {
+					return await buildAuthUrl({
+						adapter,
+						$fetch,
+						clientOptions,
+						options,
+						cfg,
+						onAuthenticated: (user) =>
+							adapter.notifyRenderer({ type: "authenticated", user }),
+						onError: (error) =>
+							adapter.notifyRenderer({
+								type: "error",
+								error:
+									error instanceof Error ? error : new Error(String(error)),
+								path: "/desktop/init-oauth-proxy",
+							}),
+					});
 				},
 				getUser: async () => {
 					const result = await $fetch<{ user: AuthUser }>("/get-session", {

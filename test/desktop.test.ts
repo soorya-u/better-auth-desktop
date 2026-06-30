@@ -270,7 +270,7 @@ describe("loopback auth flow (end-to-end via mock adapter)", () => {
 		});
 
 		expect(res.status).toBe(200);
-		expect(res.body).toContain("Signed in");
+		expect(res.body).toContain("Authentication complete");
 		expect(events).toContainEqual(
 			expect.objectContaining({
 				type: "authenticated",

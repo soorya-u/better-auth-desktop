@@ -10,7 +10,7 @@ import {
 	createDesktopCookieLayer,
 	type DesktopClientPluginOptions,
 } from "../core/client";
-import { startAuthFlow } from "../core/exchange";
+import { buildAuthUrl, startAuthFlow } from "../core/exchange";
 import type {
 	AuthEvent,
 	AuthUser,
@@ -24,6 +24,7 @@ import { PACKAGE_VERSION } from "../version";
 // IPC channels shared between the main-process plugin and the renderer bridge.
 export const ELECTRON_AUTH_CHANNELS = {
 	requestAuth: "desktop:requestAuth",
+	getAuthUrl: "desktop:getAuthUrl",
 	getUser: "desktop:getUser",
 	signOut: "desktop:signOut",
 	getUserImage: "desktop:getUserImage",
@@ -142,7 +143,7 @@ function createLoopbackAdapter(
 	return {
 		openExternal: (url) => shell.openExternal(url),
 		serveLoopback(onRequest, opts) {
-			return new Promise((resolve) => {
+			return new Promise((resolve, reject) => {
 				const server = createServer(async (req, res) => {
 					const url = new URL(req.url ?? "/", "http://127.0.0.1");
 					const query: Record<string, string> = {};
@@ -153,7 +154,16 @@ function createLoopbackAdapter(
 					res.writeHead(out.status, out.headers);
 					res.end(out.body);
 				});
+				const timer = setTimeout(() => {
+					server.close();
+					reject(new Error("Loopback server timed out waiting for port"));
+				}, 10_000);
+				server.on("error", (err) => {
+					clearTimeout(timer);
+					reject(err);
+				});
 				server.listen(opts?.port ?? 0, "127.0.0.1", () => {
+					clearTimeout(timer);
 					const address = server.address();
 					const port =
 						typeof address === "object" && address ? address.port : 0;
@@ -258,6 +268,27 @@ export const electronDesktop = (options: ElectronDesktopOptions) => {
 							});
 						},
 					);
+					ipcMain.handle(
+						ELECTRON_AUTH_CHANNELS.getAuthUrl,
+						async (_event, cfg: RequestAuthOptions) => {
+							return await buildAuthUrl({
+								adapter,
+								$fetch,
+								clientOptions,
+								options,
+								cfg,
+								onAuthenticated: (user) =>
+									adapter.notifyRenderer({ type: "authenticated", user }),
+								onError: (error) =>
+									adapter.notifyRenderer({
+										type: "error",
+										error:
+											error instanceof Error ? error : new Error(String(error)),
+										path: "/desktop/init-oauth-proxy",
+									}),
+							});
+						},
+					);
 					ipcMain.handle(ELECTRON_AUTH_CHANNELS.getUser, async () => {
 						const result = await $fetch<{ user: AuthUser }>("/get-session", {
 							method: "GET",
@@ -299,6 +330,7 @@ export const electronDesktop = (options: ElectronDesktopOptions) => {
 					return () => {
 						unsub?.();
 						ipcMain.removeHandler(ELECTRON_AUTH_CHANNELS.requestAuth);
+						ipcMain.removeHandler(ELECTRON_AUTH_CHANNELS.getAuthUrl);
 						ipcMain.removeHandler(ELECTRON_AUTH_CHANNELS.getUser);
 						ipcMain.removeHandler(ELECTRON_AUTH_CHANNELS.signOut);
 						ipcMain.removeHandler(ELECTRON_AUTH_CHANNELS.getUserImage);

@@ -23,6 +23,7 @@
 	},
 	"sideEffects": false,
 	"scripts": {
+		"prepare": "lefthook install",
 		"build": "tsdown",
 		"dev": "tsdown --watch",
 		"lint:package": "publint run --strict --pack false",
@@ -80,6 +81,11 @@
 			"dev-source": "./src/rpc/webview.ts",
 			"types": "./dist/rpc/webview.d.mts",
 			"default": "./dist/rpc/webview.mjs"
+		},
+		"./react": {
+			"dev-source": "./src/react.ts",
+			"types": "./dist/react.d.mts",
+			"default": "./dist/react.mjs"
 		}
 	},
 	"typesVersions": {
@@ -107,6 +113,9 @@
 			],
 			"rpc/webview": [
 				"./dist/rpc/webview.d.mts"
+			],
+			"react": [
+				"./dist/react.d.mts"
 			]
 		}
 	},
@@ -114,13 +123,16 @@
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
+		"@arethetypeswrong/cli": "^0.18.4",
 		"@biomejs/biome": "^2.5.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/bun": "latest",
+		"@types/react": "^19.2.17",
 		"better-auth": "^1.6.21",
 		"better-call": "1.3.7",
 		"better-sqlite3": "^12.11.1",
 		"electrobun": "^1.18.1",
+		"lefthook": "^2.1.9",
 		"publint": "^0.3.12",
 		"tsdown": "^0.21.1",
 		"typescript": "^5.9.3",
@@ -128,6 +140,7 @@
 	},
 	"peerDependencies": {
 		"@better-auth/core": "^1.6.21",
+		"react": ">=18.0.0",
 		"@better-auth/utils": "^0.4.2",
 		"@better-fetch/fetch": "^1.3.1",
 		"better-auth": "^1.6.21",
@@ -144,6 +157,9 @@
 			"optional": true
 		},
 		"electron-store": {
+			"optional": true
+		},
+		"react": {
 			"optional": true
 		}
 	},
