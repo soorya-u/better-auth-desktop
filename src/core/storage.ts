@@ -3,6 +3,8 @@ import type { Storage } from "./types";
 export type KeychainStorageOptions = {
 	service?: string | undefined;
 	account?: string | undefined;
+	/** Called when a keychain write fails. Use this to surface the error to the user or log it. */
+	onError?: (error: unknown) => void;
 };
 
 // Loads the keychain blob once via Bun.secrets, then serves a synchronous cache.
@@ -23,7 +25,7 @@ export async function keychainStorage(
 	const persist = () => {
 		Bun.secrets
 			.set({ service, name: account, value: JSON.stringify(cache) })
-			.catch(() => undefined);
+			.catch((error: unknown) => opts.onError?.(error));
 	};
 
 	return {

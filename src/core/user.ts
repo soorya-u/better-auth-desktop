@@ -37,10 +37,20 @@ export async function fetchUserImage(
 		return null;
 	}
 
-	const response = await fetch(resolvedUrl, {
-		method: "GET",
-		headers: { accept: "image/*" },
-	});
+	const controller = new AbortController();
+	const fetchTimer = setTimeout(() => controller.abort(), 10_000);
+	let response: Response;
+	try {
+		response = await fetch(resolvedUrl, {
+			method: "GET",
+			headers: { accept: "image/*" },
+			signal: controller.signal,
+		});
+	} catch {
+		return null;
+	} finally {
+		clearTimeout(fetchTimer);
+	}
 
 	if (!response.ok) return null;
 

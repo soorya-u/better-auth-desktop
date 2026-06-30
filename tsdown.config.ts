@@ -27,12 +27,12 @@ export default defineConfig([
 			"./src/adapters/electron.ts",
 			"./src/web/index.ts",
 			"./src/rpc/webview.ts",
+			"./src/react.ts",
 		],
 		treeshake: true,
-		// Bundle electrobun's browser view so web consumers need no electrobun dep.
-		noExternal: ["electrobun/view"],
-		// Peer/runtime deps stay external; they resolve in the consumer app.
 		deps: {
+			// Bundle electrobun/view so web consumers need no electrobun dep.
+			alwaysBundle: ["electrobun/view"],
 			neverBundle: [
 				"electrobun/bun",
 				"electrobun",
@@ -49,6 +49,7 @@ export default defineConfig([
 				"@better-auth/utils/hash",
 				"@better-fetch/fetch",
 				"zod",
+				"react",
 			],
 		},
 	},

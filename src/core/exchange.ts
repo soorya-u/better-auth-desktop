@@ -5,7 +5,7 @@ import { createHash } from "@better-auth/utils/hash";
 import type { BetterFetch, CreateFetchOption } from "@better-fetch/fetch";
 import { getBaseURL, safeJSONParse } from "better-auth";
 import { generateRandomString } from "better-auth/crypto";
-import { buildLoopbackUrl, generateNonce, successPage } from "./loopback";
+import { buildLoopbackUrl, generateNonce } from "./loopback";
 import type {
 	AuthUser,
 	DesktopAdapter,
@@ -34,10 +34,17 @@ function loopbackSuccessResponse(
 	if (success && typeof success === "object") {
 		return { status: 302, headers: { location: success.redirectTo }, body: "" };
 	}
+	if (typeof success === "string") {
+		return {
+			status: 200,
+			headers: { "content-type": "text/html; charset=utf-8" },
+			body: success,
+		};
+	}
 	return {
 		status: 200,
-		headers: { "content-type": "text/html; charset=utf-8" },
-		body: success ?? successPage(),
+		headers: { "content-type": "text/plain; charset=utf-8" },
+		body: "Authentication complete. You can close this tab.",
 	};
 }
 
@@ -66,8 +73,10 @@ export type ExchangeTokenArgs = {
 	fetchOptions?: Omit<CreateFetchOption, "method"> | undefined;
 };
 
-// One-time-code → session. Decodes the redirect token, looks up the matching
-// PKCE verifier, and exchanges it at /desktop/token (which verifies the PKCE).
+/**
+ * Decodes the redirect token, looks up the matching PKCE verifier, and
+ * exchanges it at `/desktop/token`. Called automatically by the loopback handler.
+ */
 export async function exchangeToken({
 	$fetch,
 	options,
@@ -114,10 +123,11 @@ export type StartAuthFlowArgs = {
 	onError?: (error: unknown) => void;
 };
 
-// Drives the full loopback hand-off: bind 127.0.0.1, open the system browser at
-// init-oauth-proxy (carrying the loopback URL as callbackURL), and complete the
-// exchange when the browser navigates back to the loopback.
-export async function startAuthFlow({
+// Shared setup: generates PKCE, starts loopback, builds init-oauth-proxy URL.
+// Returns the URL and a cleanup fn (for callers that need to abort on error).
+// The loopback server continues listening in the background until the token
+// arrives or the timeout fires.
+async function prepareAuthFlow({
 	adapter,
 	$fetch,
 	clientOptions,
@@ -125,7 +135,7 @@ export async function startAuthFlow({
 	cfg,
 	onAuthenticated,
 	onError,
-}: StartAuthFlowArgs): Promise<void> {
+}: StartAuthFlowArgs): Promise<{ url: string; cleanup: () => void }> {
 	const baseURL = getBaseURL(
 		clientOptions?.baseURL,
 		clientOptions?.basePath,
@@ -212,8 +222,23 @@ export async function startAuthFlow({
 		onError?.(new BetterAuthError("Desktop sign-in timed out."));
 	}, options.loopbackTimeout ?? DEFAULT_LOOPBACK_TIMEOUT);
 
+	return { url: url.toString(), cleanup };
+}
+
+/**
+ * Returns the init-oauth-proxy URL without opening a browser.
+ * The loopback server starts listening in the background — use for copy-link flows.
+ */
+export async function buildAuthUrl(args: StartAuthFlowArgs): Promise<string> {
+	const { url } = await prepareAuthFlow(args);
+	return url;
+}
+
+/** Opens the init-oauth-proxy URL in the system browser and awaits the loopback callback. */
+export async function startAuthFlow(args: StartAuthFlowArgs): Promise<void> {
+	const { url, cleanup } = await prepareAuthFlow(args);
 	try {
-		await adapter.openExternal(url.toString());
+		await args.adapter.openExternal(url);
 	} catch (error) {
 		cleanup();
 		throw error;

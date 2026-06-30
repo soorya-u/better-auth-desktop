@@ -52,8 +52,8 @@ export function createDesktopCookieLayer(
 	const setStored = (name: string, value: string) => {
 		try {
 			opts.storage.setItem(name, value);
-		} catch {
-			//
+		} catch (error) {
+			opts.onStorageError?.(error);
 		}
 	};
 

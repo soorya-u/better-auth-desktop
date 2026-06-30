@@ -19,9 +19,10 @@ export function buildLoopbackUrl(
 	return url.toString();
 }
 
-// Parse a candidate loopback URL, returning it only if it is a plain-http
-// 127.0.0.1 URL (never the "localhost" hostname, never https). Returns null
-// for anything else so callers can reject untrusted redirect targets.
+/**
+ * Returns `null` for anything other than a plain-http `127.0.0.1` URL so
+ * callers can safely reject untrusted redirect targets (never `localhost`, never https).
+ */
 export function parseLoopbackUrl(
 	raw: string,
 	allowedPorts?: AllowedLoopbackPorts,
@@ -46,13 +47,4 @@ export function isAllowedLoopbackPort(
 ): boolean {
 	if (Array.isArray(allowed)) return allowed.includes(port);
 	return port >= allowed.min && port <= allowed.max;
-}
-
-// Minimal default loopback page. Parameterized so callers aren't stuck with a
-// fixed copy; consumers wanting a branded page pass `loopbackSuccess` instead.
-export function successPage(
-	title = "Signed in",
-	message = "You can close this tab and return to the app.",
-): string {
-	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head><body style="font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center"><main><h1 style="font-size:1.25rem;margin:0 0 .5rem">${title}</h1><p style="margin:0;opacity:.7">${message}</p></main></body></html>`;
 }
