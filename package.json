@@ -4,10 +4,10 @@
 	"description": "Loopback-based desktop auth for Better Auth. Framework-agnostic server + core with thin Electrobun and Electron adapters; OAuth hand-off via a 127.0.0.1 loopback navigation (no custom URL scheme).",
 	"type": "module",
 	"license": "MIT",
-	"homepage": "https://github.com/soorya-u/better-auth-electrobun",
+	"homepage": "https://github.com/soorya-u/better-auth-desktop",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/soorya-u/better-auth-electrobun.git"
+		"url": "git+https://github.com/soorya-u/better-auth-desktop.git"
 	},
 	"keywords": [
 		"electrobun",
