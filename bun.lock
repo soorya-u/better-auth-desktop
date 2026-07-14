@@ -4,9 +4,6 @@
   "workspaces": {
     "": {
       "name": "@soorya-u/better-auth-electrobun",
-      "dependencies": {
-        "zod": "^4.3.6",
-      },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.4",
         "@biomejs/biome": "^2.5.1",
